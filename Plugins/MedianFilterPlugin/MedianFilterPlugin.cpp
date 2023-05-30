@@ -1,6 +1,9 @@
 #include "MedianFilterPlugin.h"
 #include <iostream>
 #include <opencv2/opencv.hpp>
+#include <QString>
+#include <QImage>
+#include <QDebug>
 
 using namespace std;
 using namespace cv;
@@ -23,16 +26,10 @@ QString MedianFilterPlugin::description()
 
 void MedianFilterPlugin::processImage(const QImage &inputImage, QImage &outputImage)
 {
-    //medianBlur(inputImage, outputImage, 5);
-
-    //cv::Mat &image = imageList[0];
-    //plugin->processImage(image, image);
-
-    //QImage q_image(image.data, image.cols, image.rows, image.step, QImage::Format_BGR888);
-    //GraphicsPixmapItem *item = new QGraphicsPixmapItem(QPixmap::fromImage(q_image));
-    //scene.clear();
-    //scene.addItem(item);  // the item will be take over by scene
-
-    //if (imageViewPlugin)
-    //    imageViewPlugin->showImage(q_image);
+    Mat src = Mat(inputImage.height(), inputImage.width(), CV_8UC3, (void *)inputImage.bits(), inputImage.bytesPerLine());
+    Mat dst;
+    medianBlur(src, dst, 15);
+    imwrite("src.png", src);
+    imwrite("dst.png", dst);
+    outputImage = QImage(dst.data, dst.cols, dst.rows, dst.step, QImage::Format_BGR888).copy();
 }

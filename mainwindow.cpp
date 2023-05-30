@@ -9,8 +9,6 @@
 
 #include "Plugins/ImageProcessPluginInterface.h"
 
-#define FILTERS_SUBFOLDER "Plugins/MedianFilterPlugin"
-
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -58,19 +56,18 @@ void MainWindow::dropEvent(QDropEvent *event)
         if (imageViewPlugin)
             imageViewPlugin->showImage(image);
     }
-    qDebug() << imageList.count();
 }
 
 void MainWindow::getPluginList()
 {
-    QDir filtersDir(qApp->applicationDirPath() + FILTERS_SUBFOLDER);
+    QDir filtersDir(qApp->applicationDirPath() + "/Plugins/MMPosePlugin");
     QFileInfoList filters = filtersDir.entryInfoList(QDir::NoDotAndDotDot | QDir::Files, QDir::Name);
     for (QFileInfo &filter : filters)
     {
         if(QLibrary::isLibrary(filter.absoluteFilePath()))
         {
             QPluginLoader pluginLoader(filter.absoluteFilePath(), this);
-            if(dynamic_cast<CvPluginInterface*>(pluginLoader.instance()))
+            if(dynamic_cast<ImageProcessPluginInterface*>(pluginLoader.instance()))
             {
                 ui->listWidget->addItem(filter.fileName());
                 pluginLoader.unload();
@@ -80,12 +77,11 @@ void MainWindow::getPluginList()
                 QMessageBox::warning(this, tr("Warning"), QString(tr("Make sure only plugins exist in plugins folder.<br>%1 is not a plugin.")).arg(filter.fileName()));
             }
         }
-
-        if(ui->listWidget->count() <= 0)
-        {
-            QMessageBox::critical(this, tr("No Plugins"), tr("This application cannot work without plugins!<br>Make sure the filter_plugins folder exists in the same folder as the application<br>and that there are some filter plugins inside it"));
-            this->setEnabled(false);
-        }
+    }
+    if(ui->listWidget->count() <= 0)
+    {
+        QMessageBox::critical(this, tr("No Plugins"), tr("This application cannot work without plugins!<br>Make sure the filter_plugins folder exists in the same folder as the application<br>and that there are some filter plugins inside it"));
+        this->setEnabled(false);
     }
 }
 
@@ -116,22 +112,17 @@ void MainWindow::on_pushButton_clicked()
 {
     if(ui->listWidget->currentRow() >= 0)
     {
-        QPluginLoader pluginLoader(qApp->applicationDirPath() + FILTERS_SUBFOLDER + ui->listWidget->currentItem()->text());
-        CvPluginInterface *plugin = dynamic_cast<CvPluginInterface*>(pluginLoader.instance());
+        QPluginLoader pluginLoader(qApp->applicationDirPath() + "/Plugins/MMPosePlugin/" + ui->listWidget->currentItem()->text());
+        ImageProcessPluginInterface *plugin = dynamic_cast<ImageProcessPluginInterface*>(pluginLoader.instance());
         if (plugin)
         {
             if (!imageList.empty())
             {
-                //cv::Mat &image = imageList[0];
-                //plugin->processImage(image, image);
+                QImage output;
+                plugin->processImage(imageList[0], output);
 
-                //QImage q_image(image.data, image.cols, image.rows, image.step, QImage::Format_BGR888);
-                //GraphicsPixmapItem *item = new QGraphicsPixmapItem(QPixmap::fromImage(q_image));
-                //scene.clear();
-                //scene.addItem(item);  // the item will be take over by scene
-
-                //if (imageViewPlugin)
-                //    imageViewPlugin->showImage(q_image);
+                if (imageViewPlugin)
+                    imageViewPlugin->showImage(output);
             }
             else
             {

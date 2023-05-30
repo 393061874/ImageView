@@ -2,8 +2,6 @@
 #define IMAGE_VIEW_PLUGIN_INTERFACE_H
 
 #include <QObject>
-#include <QImage>
-#include <QRectF>
 
 
 class ImageViewPluginInterface

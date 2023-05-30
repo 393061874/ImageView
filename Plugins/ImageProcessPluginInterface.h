@@ -1,20 +1,19 @@
-#ifndef CVPLUGININTERFACE_H
-#define CVPLUGININTERFACE_H
+#ifndef IMAGEPROCESSPLUGININTERFACE_H
+#define IMAGEPROCESSPLUGININTERFACE_H
 
 #include <QObject>
-#include <QString>
 
 
-class CvPluginInterface
+class ImageProcessPluginInterface
 {
 public:
-    virtual ~CvPluginInterface() {}
+    virtual ~ImageProcessPluginInterface() {}
     virtual QString description() = 0;
     virtual void processImage(const QImage &inputImage, QImage &outputImage) = 0;
 };
 
-#define CVPLUGININTERFACE_IID "com.amin.cvplugininterface"
-Q_DECLARE_INTERFACE(CvPluginInterface, CVPLUGININTERFACE_IID)
+#define IMAGEPROCESSPLUGININTERFACE_IID "com.amin.imageprocessplugininterface"
+Q_DECLARE_INTERFACE(ImageProcessPluginInterface, IMAGEPROCESSPLUGININTERFACE_IID)
 
 
-#endif // CVPLUGININTERFACE_H
+#endif // IMAGEPROCESSPLUGININTERFACE_H

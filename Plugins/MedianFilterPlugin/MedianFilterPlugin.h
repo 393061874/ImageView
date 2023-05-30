@@ -6,11 +6,11 @@
 
 
 class MEDIAN_FILTER_PLUGIN_EXPORT MedianFilterPlugin:
-    public QObject, public CvPluginInterface
+    public QObject, public ImageProcessPluginInterface
 {
     Q_OBJECT
-    Q_PLUGIN_METADATA(IID "com.amin.cvplugininterface")
-    Q_INTERFACES(CvPluginInterface)
+    Q_PLUGIN_METADATA(IID "com.amin.imageprocessplugininterface")
+    Q_INTERFACES(ImageProcessPluginInterface)
 
 public:
     MedianFilterPlugin();
