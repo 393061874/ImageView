@@ -8,8 +8,15 @@ class ImageViewPluginInterface
 {
 public:
     virtual ~ImageViewPluginInterface() {}
-    virtual QWidget *createWidget() = 0;
-    virtual void showImage(const QImage &image) = 0;
+    virtual QWidget *toWidget() = 0;
+
+    // 图片列表操作
+    virtual void append(const QImage &image) = 0;
+    virtual QList<QImage> &getImageList() = 0;
+    virtual int getCurrentIndex() const = 0;
+    virtual void showIndex(int index) = 0;
+
+    // 图形操作
     virtual QRectF getWinRect() = 0;
     virtual QRectF getRoiRect() = 0;
 };

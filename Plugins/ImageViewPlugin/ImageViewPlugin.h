@@ -3,8 +3,7 @@
 
 #include "ImageViewPlugin_global.h"
 #include "../ImageViewPluginInterface.h"
-#include <QWidget>
-#include <QGraphicsScene>
+#include <QTabWidget>
 
 
 namespace Ui {
@@ -12,7 +11,7 @@ class ViewForm;
 }
 
 class IMAGEVIEWPLUGIN_EXPORT ImageViewPlugin :
-    public QWidget, public ImageViewPluginInterface
+    public QTabWidget, public ImageViewPluginInterface
 {
     Q_OBJECT
     Q_PLUGIN_METADATA(IID "com.Interface.ImageViewPluginInterface")
@@ -21,14 +20,23 @@ class IMAGEVIEWPLUGIN_EXPORT ImageViewPlugin :
 public:
     explicit ImageViewPlugin(QWidget *parent = nullptr);
     ~ImageViewPlugin();
-    QWidget *createWidget();
-    void showImage(const QImage &image);
+    QWidget *toWidget();
+
+    // 图片列表操作
+    void append(const QImage &image);
+    QList<QImage> &getImageList();
+    int getCurrentIndex() const;
+    void showIndex(int index);
+
+    // 图形操作
     QRectF getWinRect();
     QRectF getRoiRect();
 
 private:
-    Ui::ViewForm *ui;
-    QGraphicsScene scene;
+    int currentIndex;
+    QList<QImage> imageList;
+    //Ui::ViewForm *ui;
+    //QGraphicsScene scene;
 };
 
 #endif // VIEWFORM_H

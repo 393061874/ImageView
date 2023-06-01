@@ -2,6 +2,7 @@
 #include "ui_mainwindow.h"
 #include <QMimeData>
 #include <QFileInfo>
+#include <QLabel>
 #include <QGraphicsPixmapItem>
 #include <QDebug>
 #include <QDir>
@@ -16,8 +17,8 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
     setAcceptDrops(true);
+    setImageViewPlugin();
     getPluginList();
-    getImageViewPlugin();
 }
 
 MainWindow::~MainWindow()
@@ -49,13 +50,56 @@ void MainWindow::dropEvent(QDropEvent *event)
     {
         // 图片加入列表
         image.convertTo(QImage::Format_BGR888);
-        imageList.clear();
-        imageList.push_back(image);
-
-        // 显示最新的图片
-        if (imageViewPlugin)
-            imageViewPlugin->showImage(image);
+        imageViewPlugin->append(image);
     }
+}
+
+void MainWindow::setImageViewPlugin()
+{
+    QString plugin_path = "Plugins/ImageViewPlugin/libImageViewPlugin.so";
+    if (QLibrary::isLibrary(plugin_path))
+    {
+        QPluginLoader plugin_loader(plugin_path, this);
+        imageViewPlugin = dynamic_cast<ImageViewPluginInterface*>(plugin_loader.instance());
+        if (imageViewPlugin)
+        {
+            // 替换占位组件
+            ui->gridLayout->removeWidget(ui->widget);
+            delete ui->widget;
+            ui->gridLayout->addWidget(imageViewPlugin->toWidget(), 0, 1, 1, 1);
+        }
+        else
+        {
+            QMessageBox::critical(this, tr("Warning"), QString(tr("%1 is not a plugin")).arg(plugin_path));
+        }
+    }
+    else
+    {
+        QMessageBox::critical(this, tr("No Plugins"), tr("This application cannot work without plugins!<br>Make sure that there are view plugins inside it"));
+    }
+
+    // 准备控件
+
+    //tab_Source = new QWidget();
+    //tab_Source->setObjectName("tab_Source");
+    //gridLayout_Source = new QGridLayout(tab_Source);
+    //gridLayout_Source->setObjectName("gridLayout_Source");
+    //label_Image = new QLabel(tab_Source);
+    //label_Image->setObjectName("label_Image");
+
+    //gridLayout_Source->addWidget(label_Image, 0, 0, 1, 1);
+
+    //tabWidget_ImageView->addTab(tab_Source, QString());
+
+
+//    QPixmap image("image.jpeg");
+//    QLabel *label_Source = new QLabel(ui->tab_Source);
+//    label_Source->setObjectName("label_Source");
+//    ui->gridLayout_Source->addWidget(label_Source, 0, 0, 1, 1);
+
+//    QSize show_size = label_Source->size();
+//    label_Source->setPixmap(image.scaled(image.size() / 3));
+//    label_Source->setScaledContents(true);
 }
 
 void MainWindow::getPluginList()
@@ -85,28 +129,6 @@ void MainWindow::getPluginList()
     }
 }
 
-void MainWindow::getImageViewPlugin()
-{
-    QString plugin_path = "Plugins/ImageViewPlugin/libImageViewPlugin.so";
-    if (QLibrary::isLibrary(plugin_path))
-    {
-        QPluginLoader plugin_loader(plugin_path, this);
-        imageViewPlugin = dynamic_cast<ImageViewPluginInterface*>(plugin_loader.instance());
-        if (imageViewPlugin)
-        {
-            QWidget *new_widget = imageViewPlugin->createWidget();
-            ui->gridLayout_4->addWidget(new_widget);
-        }
-        else
-        {
-            QMessageBox::critical(this, tr("Warning"), QString(tr("%1 is not a plugin")).arg(plugin_path));
-        }
-    }
-    else
-    {
-        QMessageBox::critical(this, tr("No Plugins"), tr("This application cannot work without plugins!<br>Make sure that there are view plugins inside it"));
-    }
-}
 
 void MainWindow::on_pushButton_clicked()
 {
@@ -116,15 +138,15 @@ void MainWindow::on_pushButton_clicked()
         ImageProcessPluginInterface *plugin = dynamic_cast<ImageProcessPluginInterface*>(pluginLoader.instance());
         if (plugin)
         {
-            if (!imageList.empty())
+            //if (!imageList.empty())
             {
                 QImage output;
-                plugin->processImage(imageList[0], output);
+                //plugin->processImage(imageList[0], output);
 
-                if (imageViewPlugin)
-                    imageViewPlugin->showImage(output);
+                //if (imageViewPlugin)
+                //    imageViewPlugin->showImage(output);
             }
-            else
+            //else
             {
                 QMessageBox::warning(this, tr("Warning"), QString(tr("No image")));
             }

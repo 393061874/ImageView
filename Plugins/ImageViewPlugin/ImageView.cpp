@@ -3,29 +3,31 @@
 
 
 ImageView::ImageView(QWidget *parent):
-    QGraphicsView(parent)
+    QLabel(parent)
 {
+    // 伸缩策略
+    QSizePolicy sizePolicy1(QSizePolicy::Ignored, QSizePolicy::Ignored);
+    sizePolicy1.setHorizontalStretch(0);
+    sizePolicy1.setVerticalStretch(0);
+    sizePolicy1.setHeightForWidth(sizePolicy().hasHeightForWidth());
+    setSizePolicy(sizePolicy1);
+
     // 跟踪鼠标位置
     setMouseTracking(true);
 
     // 不要边框
     setStyleSheet("padding: 0px, border: 0px");
-
-    // 取消锚点
-    setTransformationAnchor(QGraphicsView::NoAnchor);
-    setResizeAnchor(QGraphicsView::NoAnchor);
-
-    // 不要对齐
-    //setAlignment(0);
-
-    // 不要滚动条
-    setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 }
 
-void ImageView::bindLabelPos(QLabel *p_labelPos)
+void ImageView::setImage(const QImage *image)
 {
-    this->p_labelPos = p_labelPos;
+    this->image = image;
+
+    src = cv::Mat(image->height(), image->width(), CV_8UC3,
+        (void *)image->constBits(), image->bytesPerLine());
+    origin = cv::Point2d(0.0, 0.0);
+    scale = 1.0;
+    update();
 }
 
 void ImageView::mousePressEvent(QMouseEvent *event)
@@ -33,10 +35,10 @@ void ImageView::mousePressEvent(QMouseEvent *event)
     if (event->button() == Qt::LeftButton)
     {
         flagDrag = true;
-        sceneLastMousePos = mapToScene(event->pos());
+        sceneLastMousePos = event->position();
     }
 
-    QGraphicsView::mousePressEvent(event);
+    QLabel::mousePressEvent(event);
 }
 
 void ImageView::mouseReleaseEvent(QMouseEvent *event)
@@ -44,47 +46,68 @@ void ImageView::mouseReleaseEvent(QMouseEvent *event)
     if (event->button() == Qt::LeftButton)
     {
         flagDrag = false;
-        sceneLastMousePos = mapToScene(event->pos());
+        sceneLastMousePos = event->position();
     }
 
-    QGraphicsView::mouseReleaseEvent(event);
+    QLabel::mouseReleaseEvent(event);
 }
 
 void ImageView::mouseMoveEvent(QMouseEvent *event)
 {
-    sceneMousePos = this->mapToScene(event->pos());
+    QPointF sceneMousePos = event->position();
     if (flagDrag)
     {
         QPointF drag_vec = sceneMousePos - sceneLastMousePos;
-        QTransform move(1.0, 0,   0,
-                        0,   1.0, 0,
-                        0.01,   0.01,   1);
-        qDebug() << " -------";
-        qDebug() << move;
-        setTransform(move, true);
-        qDebug() << transform();
-        //translate(drag_vec.x(), drag_vec.y());
-        sceneMousePos = sceneLastMousePos;
+        origin -= cv::Point2d(drag_vec.x(), drag_vec.y()) / scale;
     }
-    if (p_labelPos)
-    {
-        QPoint p2i = sceneMousePos.toPoint();  // 只显示整数坐标
-        p_labelPos->setText(QString("%1, %2").arg(p2i.x()).arg(p2i.y()));
-    }
-
     sceneLastMousePos = sceneMousePos;
+    update();
 
-    QGraphicsView::mouseMoveEvent(event);
+    QLabel::mouseMoveEvent(event);
 }
 
 void ImageView::wheelEvent(QWheelEvent *event)
 {
     int angleDeltaY = event->angleDelta().y();
     double zoomFactor = qPow(1.0015, angleDeltaY);
-    //qDebug() << zoomFactor;
-    scale(zoomFactor, zoomFactor);
-    //this->centerOn(sceneMousePos * (1.0 - zoomFactor));
-    this->viewport()->update();
-    event->accept();
+    cv::Point2d corner(event->position().x(), event->position().y());
+    origin += corner / scale * (1.0 - 1.0 / zoomFactor);
+    scale *= zoomFactor;
+    update();
+
+    QLabel::wheelEvent(event);
 }
 
+void ImageView::resizeEvent(QResizeEvent *event)
+{
+    update();
+    QLabel::resizeEvent(event);
+}
+
+void ImageView::update()
+{
+    if (src.empty())
+        return;
+
+    // 图像
+    cv::Mat dst;
+    double data[6] = {
+        scale, 0.0, -origin.x * scale,
+        0.0, scale, -origin.y * scale
+    };
+    cv::Mat M(2, 3, CV_64FC1, data);
+    cv::warpAffine(src, dst, M, {size().width(), size().height()}, cv::INTER_NEAREST);
+
+    // 显示坐标和像素值字串
+    cv::Point2d corner(sceneLastMousePos.x(), sceneLastMousePos.y());
+    cv::Point2d imagePos = corner / scale + origin + cv::Point2d(0.5, 0.5);
+    qDebug() << imagePos.x << imagePos.y;
+
+    // 打像素块网格
+
+    // 在像素块上显示像素值
+
+    // 显示
+    QImage show((uchar *)dst.data, dst.cols, dst.rows, dst.cols * 3, QImage::Format_BGR888);
+    setPixmap(QPixmap::fromImage(show));
+}

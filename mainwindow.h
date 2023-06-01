@@ -22,6 +22,7 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
+protected:
     void dragEnterEvent(QDragEnterEvent *event);
     void dropEvent(QDropEvent *event);
 
@@ -30,11 +31,10 @@ private slots:
 
 private:
     Ui::MainWindow *ui;
-    QList<QImage> imageList;
 
-    // 显示有关的内容
-    void getImageViewPlugin();
+    // 图片显示插件
     ImageViewPluginInterface *imageViewPlugin;
+    void setImageViewPlugin();
 
     // 图像处理插件
     void getPluginList();
