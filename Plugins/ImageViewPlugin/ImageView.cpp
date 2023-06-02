@@ -70,11 +70,13 @@ void ImageView::wheelEvent(QWheelEvent *event)
 {
     int angleDeltaY = event->angleDelta().y();
     double zoomFactor = qPow(1.0015, angleDeltaY);
-    cv::Point2d corner(event->position().x(), event->position().y());
-    origin += corner / scale * (1.0 - 1.0 / zoomFactor);
-    scale *= zoomFactor;
-    update();
-
+    if (zoomFactor > 1.0 && scale < 1000 || zoomFactor < 1.0) // 限制缩放的范围
+    {
+        cv::Point2d corner(event->position().x(), event->position().y());
+        origin += corner / scale * (1.0 - 1.0 / zoomFactor);
+        scale *= zoomFactor;
+        update();
+    }
     QLabel::wheelEvent(event);
 }
 
@@ -100,10 +102,40 @@ void ImageView::update()
 
     // 显示坐标和像素值字串
     cv::Point2d corner(sceneLastMousePos.x(), sceneLastMousePos.y());
-    cv::Point2d imagePos = corner / scale + origin + cv::Point2d(0.5, 0.5);
-    qDebug() << imagePos.x << imagePos.y;
+    cv::Point2d image_pos = corner / scale + origin + cv::Point2d(0.5, 0.5);
+    if (image_pos.x >= 0 && image_pos.y >= 0 && image_pos.x < src.cols && image_pos.y < src.rows)
+    {
+        qDebug() << image_pos.x << image_pos.y;
+        cv::Vec3b pixel_value = src.ptr<cv::Vec3b>((int)image_pos.y)[(int)image_pos.x];
+        qDebug() << pixel_value[0] << pixel_value[1] << pixel_value[2];
+    }
 
     // 打像素块网格
+    if (scale > 50)
+    {
+        // 准备边界
+        int x_start = fmax((int)floor(origin.x + 0.5), 0);
+        int dst_x_start = fmax((int)round((x_start - 0.5 - origin.x) * scale), 0);
+        int y_start = fmax((int)floor(origin.y + 0.5), 0);
+        int dst_y_start = fmax((int)round((y_start - 0.5 - origin.y) * scale), 0);
+        int x_end = fmin((int)ceil(size().width() / scale + origin.x + 0.5), src.cols);
+        int dst_x_end = fmin((int)round((x_end - 0.5 - origin.x) * scale), size().width() - 1);
+        int y_end = fmin((int)ceil(size().height() / scale + origin.y + 0.5), src.rows);
+        int dst_y_end = fmin((int)round((y_end - 0.5 - origin.y) * scale), size().height() - 1);
+
+        // 先画横线
+        for (int x = x_start; x <= x_end; ++x)
+        {
+            int dst_x = (int)round((x - 0.5 - origin.x) * scale);
+            cv::line(dst, cv::Point(dst_x, dst_y_start), cv::Point(dst_x, dst_y_end), cv::Scalar(200, 200, 200));
+        }
+        // 再画竖线
+        for (int y = y_start; y <= y_end; ++y)
+        {
+            int dst_y = (int)round((y - 0.5 - origin.y) * scale);
+            cv::line(dst, cv::Point(dst_x_start, dst_y), cv::Point(dst_x_end, dst_y), cv::Scalar(200, 200, 200));
+        }
+    }
 
     // 在像素块上显示像素值
 
